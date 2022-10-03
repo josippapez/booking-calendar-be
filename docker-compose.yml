@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  nest:
+    container_name: 'nest'
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/usr/src/app
+      - /usr/src/app/node_modules
+    ports:
+      - ${SERVER_PORT}:${SERVER_PORT}
+      - 9229:9229
+    command: npm run start:debug
+    env_file:
+      - .env
+    networks:
+      - nest-network
+
+  mongo:
+    image: mongo
+    container_name: 'mongodb'
+    volumes:
+      - mongodb_data_container:/data/db
+      # - ./docker/mongo/mongod.conf:/etc/mongod.conf:ro
+      # - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    env_file:
+      - .env
+    environment:
+      MONGO_INITDB_DATABASE: ${MONGO_DATABASE}
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+    ports:
+      - 27017:27017
+    networks:
+      - nest-network
+
+networks:
+  nest-network:
+
+volumes:
+  mongodb_data_container:

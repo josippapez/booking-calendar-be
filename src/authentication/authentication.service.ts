@@ -85,4 +85,15 @@ export class AuthenticationService {
       throw new HttpException('auth.WRONG_CREDENTIALS', HttpStatus.BAD_REQUEST);
     }
   }
+
+  public async googleLogin(req) {
+    if (!req.user) {
+      return 'No user from google';
+    }
+
+    return {
+      message: 'User information from google',
+      user: req.user,
+    };
+  }
 }

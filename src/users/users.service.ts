@@ -13,6 +13,15 @@ export class UsersService {
     return createdUser.save();
   }
 
+  async findOrCreate(email: string) {
+    const user = await this.userModel.findOne({ email });
+    if (user) {
+      return user;
+    }
+    const createdUser = new this.userModel({ email });
+    return createdUser.save();
+  }
+
   async findAll(): Promise<User[]> {
     return this.userModel.find().exec();
   }

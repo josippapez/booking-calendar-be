@@ -11,6 +11,7 @@ import {
 import { Response } from 'express';
 import CreateUserDto from '../users/dto/create-user.dto';
 import { AuthenticationService } from './authentication.service';
+import GoogleAuthGuard from './google.guard';
 import JwtRefreshGuard from './jwt-refresh.guard';
 import { LocalAuthenticationGuard } from './localAuthentication.guard';
 import RequestWithUser from './requestWithUser.interface';
@@ -49,6 +50,18 @@ export class AuthenticationController {
     );
     user.password = undefined;
     return response.send({ user, accessToken, refreshToken });
+  }
+
+  @Get('google')
+  @UseGuards(GoogleAuthGuard)
+  async googleAuth(@Req() req) {
+    return;
+  }
+
+  @Get('redirect')
+  @UseGuards(GoogleAuthGuard)
+  googleAuthRedirect(@Req() req) {
+    return this.authenticationService.googleLogin(req);
   }
 
   @UseGuards(JwtRefreshGuard)

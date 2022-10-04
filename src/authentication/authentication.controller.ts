@@ -64,7 +64,7 @@ export class AuthenticationController {
     const user = await this.authenticationService.googleLogin(req);
     user.user.password = undefined;
     return res.redirect(
-      'http://localhost:3000?accessToken=' +
+      `${process.env.CORS_ORIGIN}?accessToken=` +
         user.accessToken +
         '&refreshToken=' +
         user.refreshToken +

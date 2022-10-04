@@ -88,7 +88,7 @@ export class AuthenticationService {
 
   public async googleLogin(req) {
     if (!req.user) {
-      return 'No user from google';
+      throw new HttpException('Unauthorized', HttpStatus.UNAUTHORIZED);
     }
 
     return {

@@ -55,15 +55,22 @@ export class AuthenticationController {
   @UseGuards(GoogleAuthGuard)
   @Get('google/login')
   async googleAuth(@Req() req) {
-    console.log('asodkasodkasodkasokdo');
-
     return;
   }
 
   @UseGuards(GoogleAuthGuard)
   @Get('google/redirect')
-  googleAuthRedirect(@Req() req) {
-    return this.authenticationService.googleLogin(req);
+  async googleAuthRedirect(@Req() req, @Res({ passthrough: true }) res) {
+    const user = await this.authenticationService.googleLogin(req);
+    user.user.password = undefined;
+    return res.redirect(
+      'http://localhost:3000?accessToken=' +
+        user.accessToken +
+        '&refreshToken=' +
+        user.refreshToken +
+        '&user=' +
+        JSON.stringify(user.user),
+    );
   }
 
   @UseGuards(JwtRefreshGuard)

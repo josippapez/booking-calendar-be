@@ -14,7 +14,7 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
       clientID: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
       callbackURL: 'http://localhost:8000/authentication/google/redirect',
-      scope: ['email', 'profile'],
+      scope: ['profile', 'email'],
     });
   }
 
@@ -30,9 +30,8 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
       firstName: name.givenName,
       lastName: name.familyName,
       picture: photos[0].value,
-      accessToken,
     };
     const foundOrCreatedUser = this.userService.findOrCreate(user.email);
-    done(null, foundOrCreatedUser);
+    return foundOrCreatedUser;
   }
 }

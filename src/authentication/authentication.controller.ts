@@ -52,14 +52,16 @@ export class AuthenticationController {
     return response.send({ user, accessToken, refreshToken });
   }
 
-  @Get('google')
   @UseGuards(GoogleAuthGuard)
+  @Get('google/login')
   async googleAuth(@Req() req) {
+    console.log('asodkasodkasodkasokdo');
+
     return;
   }
 
-  @Get('redirect')
   @UseGuards(GoogleAuthGuard)
+  @Get('google/redirect')
   googleAuthRedirect(@Req() req) {
     return this.authenticationService.googleLogin(req);
   }

@@ -94,6 +94,8 @@ export class AuthenticationService {
     return {
       message: 'User information from google',
       user: req.user,
+      accessToken: this.getJwtAccessToken(req.user._id),
+      refreshToken: this.getJwtRefreshToken(req.user._id),
     };
   }
 }

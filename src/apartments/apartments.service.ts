@@ -29,7 +29,7 @@ export class ApartmentsService {
   }
 
   async findOne(id: string) {
-    const apartment = await this.apartmentModel.findOne({ apartmentid: id });
+    const apartment = await this.apartmentModel.findById(id);
     return apartment;
   }
 

@@ -191,4 +191,11 @@ export class PublicEventsService {
       );
     }
   }
+
+  async removeApartmentEvents(userid: string, apartmentid: string) {
+    return await this.eventModel.findOneAndRemove({
+      userid,
+      apartmentid,
+    });
+  }
 }

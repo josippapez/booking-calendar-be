@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+import { EventsService } from '../events/events.service';
+import { PublicEventsService } from '../publicEvents/publicEvents.service';
 import { Apartment, ApartmentDocument } from '../schemas/apartments.schema';
 import { CreateApartmentDto } from './dto/create-apartment.dto';
 import { UpdateApartmentDto } from './dto/update-apartment.dto';
@@ -8,6 +10,8 @@ import { UpdateApartmentDto } from './dto/update-apartment.dto';
 @Injectable()
 export class ApartmentsService {
   constructor(
+    private readonly eventsService: EventsService,
+    private readonly publicEventService: PublicEventsService,
     @InjectModel(Apartment.name)
     private apartmentModel: Model<ApartmentDocument>,
   ) {}
@@ -34,6 +38,13 @@ export class ApartmentsService {
   }
 
   remove(id: string, userid: string) {
-    return this.apartmentModel.deleteOne({ _id: id, userid });
+    const apartment = this.apartmentModel.deleteOne({ _id: id, userid });
+    if (apartment) {
+      this.eventsService.removeApartmentEvents(userid, id);
+      this.publicEventService.removeApartmentEvents(userid, id);
+      return apartment;
+    } else {
+      return null;
+    }
   }
 }

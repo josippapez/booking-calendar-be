@@ -12,5 +12,6 @@ import { PublicEventsModule } from '../publicEvents/publicEvents.module';
   ],
   controllers: [EventsController],
   providers: [EventsService],
+  exports: [EventsService],
 })
 export class EventsModule {}

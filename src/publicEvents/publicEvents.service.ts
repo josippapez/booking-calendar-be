@@ -39,8 +39,8 @@ export class PublicEventsService {
               []),
             {
               id: createEventDto.id,
-              start: date.date,
-              end: date.date,
+              start: createEventDto.start,
+              end: createEventDto.end,
             },
           ],
         },
@@ -116,8 +116,8 @@ export class PublicEventsService {
                 []),
               {
                 id: updateEventDto.updatedEvent.id,
-                start: date.date,
-                end: date.date,
+                start: updateEventDto.updatedEvent.start,
+                end: updateEventDto.updatedEvent.end,
               },
             ],
           },

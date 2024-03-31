@@ -4,8 +4,8 @@ import { DateTime } from 'luxon';
 import { Model } from 'mongoose';
 import { PublicEventsService } from '../publicEvents/publicEvents.service';
 import { Event, EventDocument } from '../schemas/events.schema';
-import { CreateEventDto } from './dto/create-event.dto';
 import { Day, EventsByYear } from './dto/EventType';
+import { CreateEventDto } from './dto/create-event.dto';
 import { RemoveEventDto } from './dto/remove-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 
@@ -42,17 +42,17 @@ export class EventsService {
 
   async addNew(
     createEventDto: CreateEventDto,
-    userid: string,
+    userId: string,
     apartmentid: string,
   ) {
     const existingEvents = (await this.eventModel.findOne({
-      userid,
+      userId,
       apartmentid,
-    })) || { data: {}, apartmentid, userid };
+    })) || { data: {}, apartmentid, userId };
 
     const dates = eachDayOfRange(createEventDto.start, createEventDto.end);
 
-    this.publicEventService.addNew(dates, userid, apartmentid, createEventDto);
+    this.publicEventService.addNew(dates, userId, apartmentid, createEventDto);
 
     const newDates = dates.reduce(
       (acc: EventsByYear, date: Day) => ({
@@ -78,7 +78,7 @@ export class EventsService {
     });
 
     return this.eventModel.findOneAndUpdate(
-      { userid, apartmentid },
+      { userId, apartmentid },
       { data: existingEvents.data },
       {
         upsert: true,
@@ -90,16 +90,16 @@ export class EventsService {
   async update(
     apartmentid: string,
     updateEventDto: UpdateEventDto,
-    userid: string,
+    userId: string,
   ) {
     const existingEvents = await this.eventModel
       .findOne({
-        userid,
+        userId,
         apartmentid,
       })
       .exec();
 
-    if (existingEvents && existingEvents.apartmentid && existingEvents.userid) {
+    if (existingEvents && existingEvents.apartmentid && existingEvents.userId) {
       const datesToEdit = eachDayOfRange(
         updateEventDto.oldEvent.start,
         updateEventDto.oldEvent.end,
@@ -132,7 +132,7 @@ export class EventsService {
       this.publicEventService.update(
         apartmentid,
         updateEventDto,
-        userid,
+        userId,
         datesToEdit,
         dates,
       );
@@ -161,7 +161,7 @@ export class EventsService {
       });
 
       return this.eventModel.findOneAndUpdate(
-        { userid, apartmentid },
+        { userId, apartmentid },
         { data: existingEvents.data },
         {
           upsert: true,
@@ -171,23 +171,26 @@ export class EventsService {
     }
   }
 
-  findAllForUser(id: number, apartmentid: string) {
-    return this.eventModel.findOne({ userid: id, apartmentid });
+  findAllForUser(userId: string, apartmentid: string) {
+    return this.eventModel.findOne({
+      userId,
+      apartmentid,
+    });
   }
 
   async remove(
     apartmentid: string,
-    userid: string,
+    userId: string,
     eventToRemove: RemoveEventDto,
   ) {
     const existingEvents = await this.eventModel
       .findOne({
-        userid,
+        userId,
         apartmentid,
       })
       .exec();
 
-    if (existingEvents && existingEvents.apartmentid && existingEvents.userid) {
+    if (existingEvents && existingEvents.apartmentid && existingEvents.userId) {
       const datesToEdit = eachDayOfRange(
         eventToRemove.start,
         eventToRemove.end,
@@ -212,13 +215,13 @@ export class EventsService {
 
       this.publicEventService.remove(
         apartmentid,
-        userid,
+        userId,
         eventToRemove,
         datesToEdit,
       );
 
       return await this.eventModel.findOneAndUpdate(
-        { userid, apartmentid },
+        { userId, apartmentid },
         { data: existingEvents.data },
         {
           upsert: true,
@@ -228,9 +231,9 @@ export class EventsService {
     }
   }
 
-  async removeApartmentEvents(userid: string, apartmentid: string) {
-    return await this.eventModel.findOneAndRemove({
-      userid,
+  async removeApartmentEvents(userId: string, apartmentid: string) {
+    return await this.eventModel.findOneAndDelete({
+      userId,
       apartmentid,
     });
   }

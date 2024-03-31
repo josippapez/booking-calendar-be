@@ -15,6 +15,6 @@ export default registerAs('mongodb', () => {
     MONGO_PASSWORD,
   } = process.env;
   return {
-    uri: `mongodb://${MONGO_USERNAME}:${MONGO_PASSWORD}@${MONGO_CONTAINER_HOSTNAME}:${MONGO_PORT}/${MONGO_DATABASE}?authSource=${AUTH_SOURCE}`,
+    uri: `mongodb://${MONGO_USERNAME}:${MONGO_PASSWORD}@${MONGO_CONTAINER_HOSTNAME}:${MONGO_PORT}`,
   };
 });

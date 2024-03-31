@@ -1,30 +1,85 @@
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+
+class OldGuestInfo {
+  @ApiPropertyOptional()
+  id?: string;
+
+  @ApiPropertyOptional()
+  PID?: string;
+
+  @ApiProperty()
+  name: string;
+
+  @ApiPropertyOptional()
+  note?: string;
+
+  @ApiPropertyOptional()
+  numberOfInvoice?: number;
+
+  @ApiProperty()
+  travelidNumber: string;
+
+  @ApiProperty()
+  address: string;
+
+  @ApiProperty()
+  city: string;
+
+  @ApiProperty()
+  country: string;
+
+  @ApiProperty()
+  dateOfArrival: string;
+
+  @ApiProperty()
+  dateOfDeparture: string;
+
+  @ApiProperty()
+  dateOfBirth: string;
+}
+
+class NewGuestInfo {
+  @ApiPropertyOptional()
+  id?: string;
+
+  @ApiPropertyOptional()
+  PID?: string;
+
+  @ApiProperty()
+  name: string;
+
+  @ApiPropertyOptional()
+  note?: string;
+
+  @ApiPropertyOptional()
+  numberOfInvoice?: number;
+
+  @ApiProperty()
+  travelidNumber: string;
+
+  @ApiProperty()
+  address: string;
+
+  @ApiProperty()
+  city: string;
+
+  @ApiProperty()
+  country: string;
+
+  @ApiProperty()
+  dateOfArrival: string;
+
+  @ApiProperty()
+  dateOfDeparture: string;
+
+  @ApiProperty()
+  dateOfBirth: string;
+}
+
 export class CreateGuestDto {
-  newGuestInfo: {
-    id?: string;
-    PID?: string;
-    name: string;
-    note?: string;
-    numberOfInvoice?: number;
-    travelidNumber: string;
-    address: string;
-    city: string;
-    country: string;
-    dateOfArrival: string;
-    dateOfDeparture: string;
-    dateOfBirth: string;
-  };
-  oldGuestInfo: {
-    id?: string;
-    PID?: string;
-    name: string;
-    note?: string;
-    numberOfInvoice?: number;
-    travelidNumber: string;
-    address: string;
-    city: string;
-    country: string;
-    dateOfArrival: string;
-    dateOfDeparture: string;
-    dateOfBirth: string;
-  };
+  @ApiProperty()
+  newGuestInfo: NewGuestInfo;
+
+  @ApiProperty()
+  oldGuestInfo: OldGuestInfo;
 }

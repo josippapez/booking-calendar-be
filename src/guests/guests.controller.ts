@@ -8,12 +8,14 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import JwtAuthenticationGuard from '../authentication/jwt-authentication.guard';
 import RequestWithUser from '../authentication/requestWithUser.interface';
 import { CreateGuestDto } from './dto/create-guest.dto';
 import { RemoveGuestDto } from './dto/remove-guest.dto';
 import { GuestsService } from './guests.service';
 
+@ApiTags('Guests')
 @UseGuards(JwtAuthenticationGuard)
 @Controller('guests')
 export class GuestsController {

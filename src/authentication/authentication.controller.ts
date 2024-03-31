@@ -8,7 +8,10 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
+import { ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
+import { LoginResponse } from 'src/authentication/dto/LoginResponse';
+import { ApiErrorResponse } from 'src/schemas/error';
 import CreateUserDto from '../users/dto/create-user.dto';
 import { AuthenticationService } from './authentication.service';
 import GoogleAuthGuard from './google.guard';
@@ -16,6 +19,7 @@ import JwtRefreshGuard from './jwt-refresh.guard';
 import { LocalAuthenticationGuard } from './localAuthentication.guard';
 import RequestWithUser from './requestWithUser.interface';
 
+@ApiTags('Authentication')
 @Controller('authentication')
 export class AuthenticationController {
   constructor(private readonly authenticationService: AuthenticationService) {}
@@ -25,9 +29,8 @@ export class AuthenticationController {
     @Body() createUserDto: CreateUserDto,
     @Res() response: Response,
   ) {
-    const registeredUser = await this.authenticationService.create(
-      createUserDto,
-    );
+    const registeredUser =
+      await this.authenticationService.create(createUserDto);
     const accessToken = this.authenticationService.getJwtAccessToken(
       registeredUser['_id'].valueOf(),
     );
@@ -37,16 +40,33 @@ export class AuthenticationController {
     return response.send({ user: registeredUser, accessToken, refreshToken });
   }
 
+  @ApiResponse({
+    status: 200,
+    description: 'Login successful',
+    type: LoginResponse,
+  })
+  @ApiResponse({
+    status: 401 | 400,
+    description: 'Invalid email or password',
+    type: ApiErrorResponse,
+  })
   @UseGuards(LocalAuthenticationGuard)
   @HttpCode(200)
   @Post('login')
-  async logIn(@Req() request: RequestWithUser, @Res() response: Response) {
-    const { user } = request;
+  async logIn(
+    @Body() user: CreateUserDto,
+    @Req() request: RequestWithUser,
+    @Res() response: Response,
+  ) {
+    const singleUser = await this.authenticationService.getAuthenticatedUser(
+      user.email,
+      user.password,
+    );
     const accessToken = this.authenticationService.getJwtAccessToken(
-      user['_id'].valueOf(),
+      singleUser.id.valueOf(),
     );
     const refreshToken = this.authenticationService.getJwtRefreshToken(
-      user['_id'].valueOf(),
+      singleUser.id.valueOf(),
     );
     user.password = undefined;
     return response.send({ user, accessToken, refreshToken });

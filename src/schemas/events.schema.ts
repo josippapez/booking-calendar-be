@@ -14,7 +14,7 @@ export class Event {
   data: any;
 
   @Prop({ required: true })
-  userid: string;
+  userId: string;
 
   @Prop({ required: true, unique: true })
   apartmentid: string;

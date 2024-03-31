@@ -16,12 +16,14 @@ import { GuestsModule } from './guests/guests.module';
     }),
     MongooseModule.forRootAsync({
       imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => ({
-        // useCreateIndex: true,
-        useNewUrlParser: true,
-        useUnifiedTopology: true,
-        uri: configService.get<string>('mongodb.uri'),
-      }),
+      useFactory: (configService: ConfigService) => {
+        console.log(configService.get<string>('mongodb.uri'));
+
+        return {
+          // useCreateIndex: true,
+          uri: configService.get<string>('mongodb.uri'),
+        };
+      },
       inject: [ConfigService],
     }),
     AuthenticationModule,

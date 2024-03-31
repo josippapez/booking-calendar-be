@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -8,6 +9,7 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
+import { ApiResponse, ApiTags } from '@nestjs/swagger';
 import JwtAuthenticationGuard from '../authentication/jwt-authentication.guard';
 import RequestWithUser from '../authentication/requestWithUser.interface';
 import { CreateEventDto } from './dto/create-event.dto';
@@ -15,11 +17,17 @@ import { RemoveEventDto } from './dto/remove-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { EventsService } from './events.service';
 
+@ApiTags('Events')
 @UseGuards(JwtAuthenticationGuard)
 @Controller('events')
 export class EventsController {
   constructor(private readonly eventsService: EventsService) {}
 
+  @ApiResponse({
+    status: 201,
+    description: 'Event created',
+    type: CreateEventDto,
+  })
   @Post(':id')
   addNew(
     @Param('id') id: string,
@@ -51,7 +59,7 @@ export class EventsController {
     return this.eventsService.findAllForUser(request.user['_id'].valueOf(), id);
   }
 
-  @Patch(':id/:eventid')
+  @Delete(':id')
   removeEvent(
     @Param('id') id: string,
     @Req() request: RequestWithUser,

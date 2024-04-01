@@ -1,4 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import { ApiProperty } from '@nestjs/swagger';
 import { Document } from 'mongoose';
 
 export type UserDocument = User & Document;
@@ -10,6 +11,9 @@ export type UserDocument = User & Document;
   virtuals: 'id',
 })
 export class User {
+  @ApiProperty()
+  _id: string;
+
   @Prop({ required: true, default: 'user' })
   role: string;
 

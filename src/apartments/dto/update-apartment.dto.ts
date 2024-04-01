@@ -2,13 +2,12 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class UpdateApartmentDto {
   @ApiProperty()
-  id: string;
-
-  @ApiProperty()
   name: string;
 
-  @ApiPropertyOptional()
-  image?: string;
+  @ApiPropertyOptional({
+    oneOf: [{ type: 'string' }, { type: 'string', format: 'binary' }],
+  })
+  image?: Express.Multer.File;
 
   @ApiProperty()
   address: string;

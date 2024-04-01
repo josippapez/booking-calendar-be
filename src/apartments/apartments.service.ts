@@ -7,6 +7,12 @@ import { Apartment, ApartmentDocument } from '../schemas/apartments.schema';
 import { CreateApartmentDto } from './dto/create-apartment.dto';
 import { UpdateApartmentDto } from './dto/update-apartment.dto';
 
+// function to encode file data to base64 encoded string
+function base64_encode(file: Express.Multer.File) {
+  // read binary data
+  return file.buffer.toString('base64');
+}
+
 @Injectable()
 export class ApartmentsService {
   constructor(
@@ -16,14 +22,32 @@ export class ApartmentsService {
     private apartmentModel: Model<ApartmentDocument>,
   ) {}
 
-  create(apartmentDto: CreateApartmentDto, userid: string) {
-    return this.apartmentModel.create({ ...apartmentDto, userid });
+  async create(
+    apartmentDto: CreateApartmentDto,
+    image: Express.Multer.File | null | '',
+    userid: string,
+  ) {
+    const base64Image = image ? base64_encode(image) : '';
+    return this.apartmentModel.create({
+      ...apartmentDto,
+      userid,
+      image: image ? 'data:' + image.mimetype + ';base64,' + base64Image : '',
+    });
   }
 
-  async update(id: string, apartmentDto: UpdateApartmentDto, userid: string) {
+  async update(
+    id: string,
+    apartmentDto: UpdateApartmentDto,
+    image: Express.Multer.File | null | '',
+    userid: string,
+  ) {
+    const base64Image = image ? base64_encode(image) : '';
     return this.apartmentModel.findOneAndUpdate(
       { _id: id, userid },
-      apartmentDto,
+      {
+        ...apartmentDto,
+        image: image ? 'data:' + image.mimetype + ';base64,' + base64Image : '',
+      },
       { new: true },
     );
   }

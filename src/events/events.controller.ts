@@ -28,45 +28,56 @@ export class EventsController {
     description: 'Event created',
     type: CreateEventDto,
   })
-  @Post(':id')
+  @Post(':apartmentId')
   addNew(
-    @Param('id') id: string,
+    @Param('apartmentId') apartmentId: string,
     @Body() createEventDto: CreateEventDto,
     @Req() request: RequestWithUser,
   ) {
     return this.eventsService.addNew(
       createEventDto,
       request.user['_id'].valueOf(),
-      id,
+      apartmentId,
     );
   }
 
-  @Patch(':id')
+  @Patch(':apartmentId')
   updateExisting(
-    @Param('id') id: string,
+    @Param('apartmentId') apartmentId: string,
     @Body() updateEventDto: UpdateEventDto,
     @Req() request: RequestWithUser,
   ) {
     return this.eventsService.update(
-      id,
+      apartmentId,
       updateEventDto,
       request.user['_id'].valueOf(),
     );
   }
 
-  @Get(':id')
-  findAllForUser(@Param('id') id: string, @Req() request: RequestWithUser) {
-    return this.eventsService.findAllForUser(request.user['_id'].valueOf(), id);
+  @ApiResponse({
+    status: 200,
+    description: 'Get all events for user',
+    // type: [CreateEventDto],
+  })
+  @Get(':apartmentId')
+  findAllForUser(
+    @Param('apartmentId') apartmentId: string,
+    @Req() request: RequestWithUser,
+  ) {
+    return this.eventsService.findAllForUser(
+      request.user['_id'].valueOf(),
+      apartmentId,
+    );
   }
 
-  @Delete(':id')
+  @Delete(':apartmentId')
   removeEvent(
-    @Param('id') id: string,
+    @Param('apartmentId') apartmentId: string,
     @Req() request: RequestWithUser,
     @Body() removeEventDto: RemoveEventDto,
   ) {
     return this.eventsService.remove(
-      id,
+      apartmentId,
       request.user['_id'].valueOf(),
       removeEventDto,
     );

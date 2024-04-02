@@ -14,7 +14,7 @@ export class Guest {
   data: any;
 
   @Prop({ required: true, unique: true })
-  apartmentid: string;
+  apartmentId: string;
 
   @Prop({ required: true })
   userid: string;

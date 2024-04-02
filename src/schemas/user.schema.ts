@@ -14,9 +14,11 @@ export class User {
   @ApiProperty()
   _id: string;
 
+  @ApiProperty()
   @Prop({ required: true, default: 'user' })
   role: string;
 
+  @ApiProperty()
   @Prop({ required: true, unique: true })
   email: string;
 

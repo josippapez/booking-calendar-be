@@ -10,6 +10,8 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiErrorResponse } from 'src/schemas/error';
+import { Events } from 'src/schemas/events.schema';
 import JwtAuthenticationGuard from '../authentication/jwt-authentication.guard';
 import RequestWithUser from '../authentication/requestWithUser.interface';
 import { CreateEventDto } from './dto/create-event.dto';
@@ -26,15 +28,15 @@ export class EventsController {
   @ApiResponse({
     status: 201,
     description: 'Event created',
-    type: CreateEventDto,
+    type: Events,
   })
   @Post(':apartmentId')
-  addNew(
+  async addNew(
     @Param('apartmentId') apartmentId: string,
     @Body() createEventDto: CreateEventDto,
     @Req() request: RequestWithUser,
   ) {
-    return this.eventsService.addNew(
+    return await this.eventsService.addNew(
       createEventDto,
       request.user['_id'].valueOf(),
       apartmentId,
@@ -42,12 +44,12 @@ export class EventsController {
   }
 
   @Patch(':apartmentId')
-  updateExisting(
+  async updateExisting(
     @Param('apartmentId') apartmentId: string,
     @Body() updateEventDto: UpdateEventDto,
     @Req() request: RequestWithUser,
   ) {
-    return this.eventsService.update(
+    return await this.eventsService.update(
       apartmentId,
       updateEventDto,
       request.user['_id'].valueOf(),
@@ -56,27 +58,47 @@ export class EventsController {
 
   @ApiResponse({
     status: 200,
-    description: 'Get all events for user',
-    // type: [CreateEventDto],
+    description: 'Get all events for apartment',
+    type: Events,
   })
   @Get(':apartmentId')
-  findAllForUser(
+  async findAllForUser(
     @Param('apartmentId') apartmentId: string,
     @Req() request: RequestWithUser,
   ) {
-    return this.eventsService.findAllForUser(
-      request.user['_id'].valueOf(),
-      apartmentId,
-    );
+    const events = await this.eventsService
+      .findAllForUser(request.user['_id'].valueOf(), apartmentId)
+      .exec();
+
+    return events;
   }
 
+  @ApiResponse({
+    status: 200,
+    description: 'Event deleted',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Event not found',
+    type: ApiErrorResponse,
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden',
+    type: ApiErrorResponse,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad request',
+    type: ApiErrorResponse,
+  })
   @Delete(':apartmentId')
-  removeEvent(
+  async removeEvent(
     @Param('apartmentId') apartmentId: string,
     @Req() request: RequestWithUser,
     @Body() removeEventDto: RemoveEventDto,
   ) {
-    return this.eventsService.remove(
+    return await this.eventsService.remove(
       apartmentId,
       request.user['_id'].valueOf(),
       removeEventDto,

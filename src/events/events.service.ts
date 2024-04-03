@@ -3,6 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { DateTime } from 'luxon';
 import { Model } from 'mongoose';
 import { Day } from 'src/events/dto/EventType';
+import { EventsFiltersDto } from 'src/events/dto/events-filters.dto';
 import { PublicEventsService } from '../publicEvents/publicEvents.service';
 import {
   EventObject,
@@ -176,11 +177,28 @@ export class EventsService {
     }
   }
 
-  findAllForUser(userId: string, apartmentId: string) {
-    return this.eventModel.findOne({
-      userId,
-      apartmentId,
-    });
+  async findAllForUser(
+    userId: string,
+    apartmentId: string,
+    filter: EventsFiltersDto,
+  ) {
+    const events = await this.eventModel
+      .findOne(
+        {
+          userId,
+          apartmentId,
+        },
+        {
+          userId: 1,
+          apartmentId: 1,
+          data: {
+            [filter.year]: 1,
+          },
+        },
+      )
+      .lean();
+
+    return Events.mapObjectToEventObject(events, filter.month);
   }
 
   async remove(

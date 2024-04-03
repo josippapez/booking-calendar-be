@@ -6,10 +6,12 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
 import { ApiResponse, ApiTags } from '@nestjs/swagger';
+import { EventsFiltersDto } from 'src/events/dto/events-filters.dto';
 import { ApiErrorResponse } from 'src/schemas/error';
 import { Events } from 'src/schemas/events.schema';
 import JwtAuthenticationGuard from '../authentication/jwt-authentication.guard';
@@ -64,11 +66,15 @@ export class EventsController {
   @Get(':apartmentId')
   async findAllForUser(
     @Param('apartmentId') apartmentId: string,
+    @Query()
+    filters: EventsFiltersDto,
     @Req() request: RequestWithUser,
   ) {
-    const events = await this.eventsService
-      .findAllForUser(request.user['_id'].valueOf(), apartmentId)
-      .exec();
+    const events = await this.eventsService.findAllForUser(
+      request.user['_id'].valueOf(),
+      apartmentId,
+      filters,
+    );
 
     return events;
   }

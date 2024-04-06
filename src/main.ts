@@ -1,7 +1,7 @@
 import { NestFactory } from '@nestjs/core';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
-import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 const PORT = parseInt(process.env.PORT, 10) || 3000;
 
@@ -21,8 +21,8 @@ async function bootstrap() {
     .setTitle('Booking calendar API')
     .setDescription('Booking calendar API description')
     .setExternalDoc(
-      `${swaggerConfig.baseUrl}/api-docs-json`,
-      `${swaggerConfig.baseUrl}/api-docs-json`,
+      `http://${swaggerConfig.baseUrl}/api-docs-json`,
+      `http://${swaggerConfig.baseUrl}/api-docs-json`,
     )
     .addBearerAuth()
     .setVersion('1.0')

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable, forwardRef } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { DateTime } from 'luxon';
 import { Model } from 'mongoose';
@@ -43,6 +43,7 @@ export class EventsService {
   constructor(
     @InjectModel(Events.name)
     private eventModel: Model<EventsDocument>,
+    @Inject(forwardRef(() => PublicEventsService))
     private readonly publicEventService: PublicEventsService,
   ) {}
 
@@ -98,7 +99,7 @@ export class EventsService {
           new: true,
         },
       )
-      .exec();
+      .lean();
   }
 
   async update(

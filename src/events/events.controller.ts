@@ -9,17 +9,19 @@ import {
   Query,
   Req,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
-import { ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiExtraModels, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { EventsFiltersDto } from 'src/events/dto/events-filters.dto';
 import { ApiErrorResponse } from 'src/schemas/error';
-import { Events } from 'src/schemas/events.schema';
+import { EventObject, Events } from 'src/schemas/events.schema';
 import JwtAuthenticationGuard from '../authentication/jwt-authentication.guard';
 import RequestWithUser from '../authentication/requestWithUser.interface';
 import { CreateEventDto } from './dto/create-event.dto';
 import { RemoveEventDto } from './dto/remove-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { EventsService } from './events.service';
+import { WebhookInterceptor } from 'src/interceptors/webhook.interceptor';
 
 @ApiTags('Events')
 @UseGuards(JwtAuthenticationGuard)
@@ -32,6 +34,7 @@ export class EventsController {
     description: 'Event created',
     type: Events,
   })
+  @UseInterceptors(WebhookInterceptor)
   @Post(':apartmentId')
   async addNew(
     @Param('apartmentId') apartmentId: string,
@@ -45,6 +48,7 @@ export class EventsController {
     );
   }
 
+  @UseInterceptors(WebhookInterceptor)
   @Patch(':apartmentId')
   async updateExisting(
     @Param('apartmentId') apartmentId: string,
@@ -63,6 +67,7 @@ export class EventsController {
     description: 'Get all events for apartment',
     type: Events,
   })
+  @ApiExtraModels(EventObject)
   @Get(':apartmentId')
   async findAllForUser(
     @Param('apartmentId') apartmentId: string,
@@ -70,13 +75,11 @@ export class EventsController {
     filters: EventsFiltersDto,
     @Req() request: RequestWithUser,
   ) {
-    const events = await this.eventsService.findAllForUser(
+    return await this.eventsService.findAllForUser(
       request.user['_id'].valueOf(),
       apartmentId,
       filters,
     );
-
-    return events;
   }
 
   @ApiResponse({
@@ -98,6 +101,7 @@ export class EventsController {
     description: 'Bad request',
     type: ApiErrorResponse,
   })
+  @UseInterceptors(WebhookInterceptor)
   @Delete(':apartmentId')
   async removeEvent(
     @Param('apartmentId') apartmentId: string,

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable, forwardRef } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { EventsService } from '../events/events.service';
@@ -17,6 +17,7 @@ function base64_encode(file: Express.Multer.File) {
 export class ApartmentsService {
   constructor(
     private readonly eventsService: EventsService,
+    @Inject(forwardRef(() => PublicEventsService))
     private readonly publicEventService: PublicEventsService,
     @InjectModel(Apartment.name)
     private apartmentModel: Model<ApartmentDocument>,
@@ -25,12 +26,12 @@ export class ApartmentsService {
   async create(
     apartmentDto: CreateApartmentDto,
     image: Express.Multer.File | null | '',
-    userid: string,
+    userId: string,
   ) {
     const base64Image = image ? base64_encode(image) : '';
     return this.apartmentModel.create({
       ...apartmentDto,
-      userid,
+      userId,
       image: image ? 'data:' + image.mimetype + ';base64,' + base64Image : '',
     });
   }
@@ -39,33 +40,37 @@ export class ApartmentsService {
     id: string,
     apartmentDto: UpdateApartmentDto,
     image: Express.Multer.File | null | '',
-    userid: string,
+    userId: string,
   ) {
-    const base64Image = image ? base64_encode(image) : '';
+    const base64Image = image ? base64_encode(image) : undefined;
+
     return this.apartmentModel.findOneAndUpdate(
-      { _id: id, userid },
-      {
-        ...apartmentDto,
-        image: image ? 'data:' + image.mimetype + ';base64,' + base64Image : '',
-      },
+      { _id: id, userId },
+      image
+        ? {
+            ...apartmentDto,
+            image: 'data:' + image.mimetype + ';base64,' + base64Image,
+          }
+        : apartmentDto,
       { new: true },
     );
   }
 
-  findAll(userid: string) {
-    return this.apartmentModel.find({ userid });
+  async findAll(userId: string) {
+    return this.apartmentModel.find({ userId }).lean().exec();
   }
 
   async findOne(id: string) {
-    const apartment = await this.apartmentModel.findById(id);
-    return apartment;
+    return this.apartmentModel.findById(id).lean().exec();
   }
 
-  remove(id: string, userid: string) {
-    const apartment = this.apartmentModel.deleteOne({ _id: id, userid });
+  async remove(id: string, userId: string) {
+    const apartment = await this.apartmentModel
+      .deleteOne({ _id: id, userId })
+      .exec();
     if (apartment) {
-      this.eventsService.removeApartmentEvents(userid, id);
-      this.publicEventService.removeApartmentEvents(userid, id);
+      this.eventsService.removeApartmentEvents(userId, id);
+      this.publicEventService.removeApartmentEvents(userId, id);
       return apartment;
     } else {
       return null;

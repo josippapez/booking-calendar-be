@@ -1,39 +1,12 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty } from '@nestjs/swagger';
 
 export class RemoveGuestDto {
-  @ApiPropertyOptional()
-  id?: string;
-
-  @ApiPropertyOptional()
-  PID?: string;
+  @ApiProperty()
+  guestId: string;
 
   @ApiProperty()
-  name: string;
-
-  @ApiPropertyOptional()
-  note?: string;
-
-  @ApiPropertyOptional()
-  numberOfInvoice?: number;
+  startDate: string;
 
   @ApiProperty()
-  travelidNumber: string;
-
-  @ApiProperty()
-  address: string;
-
-  @ApiProperty()
-  city: string;
-
-  @ApiProperty()
-  country: string;
-
-  @ApiProperty()
-  dateOfArrival: string;
-
-  @ApiProperty()
-  dateOfDeparture: string;
-
-  @ApiProperty()
-  dateOfBirth: string;
+  endDate: string;
 }

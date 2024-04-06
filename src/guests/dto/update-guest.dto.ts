@@ -1,4 +1,10 @@
-import { PartialType } from '@nestjs/mapped-types';
-import { CreateGuestDto } from './create-guest.dto';
+import { ApiProperty } from '@nestjs/swagger';
+import { GuestObject } from 'src/schemas/guests.schema';
 
-export class UpdateGuestDto extends PartialType(CreateGuestDto) {}
+export class UpdateGuestDto {
+  @ApiProperty()
+  newGuestInfo: GuestObject;
+
+  @ApiProperty()
+  oldGuestInfo: GuestObject;
+}

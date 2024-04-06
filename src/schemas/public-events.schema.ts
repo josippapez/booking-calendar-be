@@ -31,14 +31,14 @@ export class PublicEventObject {
   }
 }
 
-export type PublicEventsByYear = {
+export class PublicEventsByYear {
   [key: string]:
     | {
         [key: string]: PublicEventObject[] | null | undefined;
       }
     | undefined
     | null;
-};
+}
 
 @Schema({
   toJSON: {
@@ -50,6 +50,7 @@ export class PublicEvents {
   @ApiProperty({
     default: {},
     nullable: true,
+    type: 'object',
     additionalProperties: {
       type: 'object',
       nullable: true,
@@ -72,6 +73,52 @@ export class PublicEvents {
   @ApiProperty()
   @Prop({ required: true, unique: true })
   apartmentId: string;
+
+  static mapObjectToPublicEventObject(
+    events: PublicEvents,
+    month: string,
+  ): PublicEvents {
+    const prevMonth = (Number(month) - 1).toString().padStart(2, '0');
+    const tempMonth = month.padStart(2, '0');
+    const nextMonth = (Number(month) + 1).toString().padStart(2, '0');
+
+    const data = {
+      ...Object.keys(events.data).reduce((acc, year) => {
+        acc[year] = {
+          ...Object.keys(events.data[year]).reduce((acc2, date) => {
+            if (
+              date.startsWith(`${year}-${prevMonth}`) ||
+              date.startsWith(`${year}-${tempMonth}`) ||
+              date.startsWith(`${year}-${nextMonth}`)
+            ) {
+              acc2[date] = events.data[year][date];
+            }
+            return acc2;
+          }, {}),
+        };
+        return acc;
+      }, {}),
+    };
+
+    return {
+      ...events,
+      data,
+    };
+  }
+}
+
+export class PublicEventsResponse {
+  @ApiProperty()
+  apartmentEmail: string;
+
+  @ApiProperty()
+  apartmentName: string;
+
+  @ApiProperty()
+  apartmentLogo: string;
+
+  @ApiProperty()
+  events: PublicEvents;
 }
 
 export const PublicEventsSchema = SchemaFactory.createForClass(PublicEvents);

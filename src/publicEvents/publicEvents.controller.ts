@@ -1,5 +1,10 @@
-import { Controller, Get, Param } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { Controller, Get, Param, Query } from '@nestjs/common';
+import { ApiExtraModels, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { PublicEventsFiltersDto } from 'src/publicEvents/dto/public-events-filters.dto';
+import {
+  PublicEventObject,
+  PublicEventsResponse,
+} from 'src/schemas/public-events.schema';
 import { PublicEventsService } from './publicEvents.service';
 
 @ApiTags('PublicEvents')
@@ -7,8 +12,22 @@ import { PublicEventsService } from './publicEvents.service';
 export class PublicEventsController {
   constructor(private readonly eventsService: PublicEventsService) {}
 
-  @Get(':id')
-  findAllForApartment(@Param('id') id: string) {
-    return this.eventsService.findAllForApartment(id);
+  @ApiResponse({
+    status: 200,
+    description: 'Get all events for apartment',
+    type: PublicEventsResponse,
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'No events found for apartment',
+  })
+  @ApiExtraModels(PublicEventObject)
+  @Get(':apartmentId')
+  async findAllForApartment(
+    @Param('apartmentId') id: string,
+    @Query()
+    filters: PublicEventsFiltersDto,
+  ) {
+    return await this.eventsService.findAllForApartment(id, filters);
   }
 }

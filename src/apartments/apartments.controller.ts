@@ -11,15 +11,16 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiConsumes, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { SingleApartmentDto } from 'src/apartments/dto/single-apartment.dto';
+import { WebhookInterceptor } from 'src/interceptors/webhook.interceptor';
 import { ApiErrorResponse } from 'src/schemas/error';
 import JwtAuthenticationGuard from '../authentication/jwt-authentication.guard';
 import RequestWithUser from '../authentication/requestWithUser.interface';
 import { ApartmentsService } from './apartments.service';
 import { CreateApartmentDto } from './dto/create-apartment.dto';
 import { UpdateApartmentDto } from './dto/update-apartment.dto';
-import { FileInterceptor } from '@nestjs/platform-express';
 
 @ApiTags('Apartments')
 @Controller('apartments')
@@ -101,11 +102,12 @@ export class ApartmentsController {
     type: ApiErrorResponse,
   })
   @UseGuards(JwtAuthenticationGuard)
-  @Patch(':id')
+  @Patch(':apartmentId')
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(FileInterceptor('image'))
+  @UseInterceptors(WebhookInterceptor)
   async update(
-    @Param('id') id: string,
+    @Param('apartmentId') id: string,
     @UploadedFile() image,
     @Body() updateApartmentDto: UpdateApartmentDto,
     @Req() request: RequestWithUser,
@@ -130,8 +132,12 @@ export class ApartmentsController {
     type: ApiErrorResponse,
   })
   @UseGuards(JwtAuthenticationGuard)
-  @Delete(':id')
-  async remove(@Req() request: RequestWithUser, @Param('id') id: string) {
+  @Delete(':apartmentId')
+  @UseInterceptors(WebhookInterceptor)
+  async remove(
+    @Req() request: RequestWithUser,
+    @Param('apartmentId') id: string,
+  ) {
     return await this.apartmentsService.remove(
       id,
       request.user['_id'].valueOf(),

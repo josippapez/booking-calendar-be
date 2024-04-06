@@ -1,9 +1,10 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
+import { Apartment, ApartmentSchema } from 'src/schemas/apartments.schema';
 import {
   PublicEvents,
   PublicEventsSchema,
-} from '../schemas/publicEvents.schema';
+} from '../schemas/public-events.schema';
 import { PublicEventsController } from './publicEvents.controller';
 import { PublicEventsService } from './publicEvents.service';
 
@@ -11,6 +12,7 @@ import { PublicEventsService } from './publicEvents.service';
   imports: [
     MongooseModule.forFeature([
       { name: PublicEvents.name, schema: PublicEventsSchema },
+      { name: Apartment.name, schema: ApartmentSchema },
     ]),
   ],
   controllers: [PublicEventsController],

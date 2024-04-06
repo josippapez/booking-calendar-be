@@ -44,7 +44,7 @@ export class Apartment {
 
   @ApiProperty()
   @Prop({ required: true })
-  userid: string;
+  userId: string;
 
   @ApiPropertyOptional()
   @Prop()

@@ -1,19 +1,24 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
   Post,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiResponse, ApiTags } from '@nestjs/swagger';
+import { CreateGuestDto } from 'src/guests/dto/create-gudest.dto';
+import { ApiErrorResponse } from 'src/schemas/error';
+import { GuestObject, Guests } from 'src/schemas/guests.schema';
 import JwtAuthenticationGuard from '../authentication/jwt-authentication.guard';
 import RequestWithUser from '../authentication/requestWithUser.interface';
-import { CreateGuestDto } from './dto/create-guest.dto';
 import { RemoveGuestDto } from './dto/remove-guest.dto';
 import { GuestsService } from './guests.service';
+import { UpdateGuestDto } from 'src/guests/dto/update-guest.dto';
 
 @ApiTags('Guests')
 @UseGuards(JwtAuthenticationGuard)
@@ -21,13 +26,28 @@ import { GuestsService } from './guests.service';
 export class GuestsController {
   constructor(private readonly guestsService: GuestsService) {}
 
+  @ApiResponse({
+    status: 201,
+    description: 'Created guest',
+    type: GuestObject,
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized',
+    type: ApiErrorResponse,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad request',
+    type: ApiErrorResponse,
+  })
   @Post(':apartmentId')
-  createOrUpdate(
+  async create(
     @Param('apartmentId') apartmentId: string,
     @Body() createGuestDto: CreateGuestDto,
     @Req() request: RequestWithUser,
   ) {
-    return this.guestsService.createOrUpdate(
+    return await this.guestsService.create(
       createGuestDto,
       request.user['_id'].valueOf(),
       apartmentId,
@@ -39,26 +59,74 @@ export class GuestsController {
     return this.guestsService.findAll();
   }
 
-  @Get(':id/:selectedyear')
-  findOne(
-    @Param('id') id: string,
-    @Param('selectedyear') selectedyear: string,
+  @ApiResponse({
+    status: 200,
+    description: 'Updated guest',
+    type: Guests,
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized',
+    type: ApiErrorResponse,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad request',
+    type: ApiErrorResponse,
+  })
+  @Patch(':apartmentId')
+  async update(
+    @Param('apartmentId') apartmentId: string,
+    @Body() updateGuestDto: UpdateGuestDto,
     @Req() request: RequestWithUser,
   ) {
-    return this.guestsService.findOne(
-      id,
+    return await this.guestsService.update(
       request.user['_id'].valueOf(),
-      selectedyear,
+      apartmentId,
+      updateGuestDto,
     );
   }
 
-  @Patch(':apartmentId')
-  remove(
+  @ApiResponse({
+    status: 200,
+    description: 'Get guest',
+    type: Guests,
+  })
+  @Get(':apartmentId')
+  async findOne(
+    @Param('apartmentId') id: string,
+    @Query('selectedYear') selectedYear: string,
+    @Req() request: RequestWithUser,
+  ) {
+    return await this.guestsService.findOne(
+      id,
+      request.user['_id'].valueOf(),
+      selectedYear,
+    );
+  }
+
+  @ApiResponse({
+    status: 200,
+    description: 'Updated guest',
+    type: Guests,
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized',
+    type: ApiErrorResponse,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad request',
+    type: ApiErrorResponse,
+  })
+  @Delete(':apartmentId')
+  async remove(
     @Param('apartmentId') apartmentId: string,
     @Req() request: RequestWithUser,
     @Body() removeGuestDto: RemoveGuestDto,
   ) {
-    return this.guestsService.remove(
+    return await this.guestsService.remove(
       request.user['_id'].valueOf(),
       apartmentId,
       removeGuestDto,

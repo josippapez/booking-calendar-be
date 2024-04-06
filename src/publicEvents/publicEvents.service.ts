@@ -1,6 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+import { PublicEventsFiltersDto } from 'src/publicEvents/dto/public-events-filters.dto';
+import { Apartment } from 'src/schemas/apartments.schema';
 import { EventObject, EventsByYear } from 'src/schemas/events.schema';
 import { RemoveEventDto } from '../events/dto/remove-event.dto';
 import {
@@ -8,13 +10,15 @@ import {
   PublicEventObject,
   PublicEvents,
   PublicEventsByYear,
-} from '../schemas/publicEvents.schema';
+} from '../schemas/public-events.schema';
 
 @Injectable()
 export class PublicEventsService {
   constructor(
     @InjectModel(PublicEvents.name)
     private eventModel: Model<PublicEventDocument>,
+    @InjectModel(Apartment.name)
+    private readonly apartmentsModel: Model<Apartment>,
   ) {}
 
   async addNew(apartmentId: string, userId: string, newDates: EventsByYear) {
@@ -79,8 +83,43 @@ export class PublicEventsService {
     );
   }
 
-  async findAllForApartment(apartmentId: string) {
-    return this.eventModel.findOne({ apartmentId });
+  async findAllForApartment(
+    apartmentId: string,
+    filter: PublicEventsFiltersDto,
+  ) {
+    const events = await this.eventModel
+      .findOne(
+        {
+          apartmentId,
+        },
+        {
+          data: {
+            [filter.year]: 1,
+          },
+        },
+      )
+      .lean();
+
+    try {
+      const apartmentInfo = await this.apartmentsModel
+        .findById(apartmentId, {
+          email: 1,
+          image: 1,
+          name: 1,
+        })
+        .lean();
+
+      console.log('APARTMENT INFO', apartmentInfo);
+
+      return {
+        apartmentEmail: apartmentInfo.email,
+        apartmentLogo: apartmentInfo.image,
+        apartmentName: apartmentInfo.name,
+        events: PublicEvents.mapObjectToPublicEventObject(events, filter.month),
+      };
+    } catch (error) {
+      throw new HttpException('Apartment not found', HttpStatus.NOT_FOUND);
+    }
   }
 
   async remove(
@@ -93,7 +132,7 @@ export class PublicEventsService {
         userId,
         apartmentId,
       })
-      .exec();
+      .lean();
 
     if (existingEvents) {
       const filteredEvents = Object.keys(existingEvents.data).reduce(
@@ -118,14 +157,16 @@ export class PublicEventsService {
         {},
       );
 
-      await this.eventModel.findOneAndUpdate(
-        { userId, apartmentId },
-        { data: filteredEvents },
-        {
-          upsert: true,
-          new: true,
-        },
-      );
+      await this.eventModel
+        .findOneAndUpdate(
+          { userId, apartmentId },
+          { data: filteredEvents },
+          {
+            upsert: true,
+            new: true,
+          },
+        )
+        .lean();
     }
   }
 

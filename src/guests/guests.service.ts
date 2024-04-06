@@ -1,153 +1,177 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { Guest, GuestDocument } from '../schemas/guests.schema';
-import { CreateGuestDto } from './dto/create-guest.dto';
-import { UpdateGuestDto } from './dto/update-guest.dto';
-import { v4 as uuidv4 } from 'uuid';
 import { DateTime } from 'luxon';
+import { Model } from 'mongoose';
+import { CreateGuestDto } from 'src/guests/dto/create-gudest.dto';
+import { GuestDocument, GuestObject, Guests } from '../schemas/guests.schema';
 import { RemoveGuestDto } from './dto/remove-guest.dto';
+import { UpdateGuestDto } from 'src/guests/dto/update-guest.dto';
 
 @Injectable()
 export class GuestsService {
   constructor(
-    @InjectModel(Guest.name)
+    @InjectModel(Guests.name)
     private guestModel: Model<GuestDocument>,
   ) {}
 
-  async createOrUpdate(
+  async create(
     createGuestDto: CreateGuestDto,
-    userid: string,
-    apartmentid: string,
+    userId: string,
+    apartmentId: string,
   ) {
-    const existingGuests = (await this.guestModel.findOne({
-      userid,
-      apartmentid,
-    })) || { data: {}, apartmentid, userid };
+    const existingGuests = (await this.guestModel
+      .findOne({
+        userId,
+        apartmentId,
+      })
+      .lean()) || { data: {}, apartmentId, userId };
 
-    const UID = createGuestDto.oldGuestInfo?.id ?? uuidv4();
-
-    if (createGuestDto.oldGuestInfo) {
-      const startToRemove = DateTime.fromISO(
-        createGuestDto.oldGuestInfo.dateOfArrival,
-      );
-      const endToRemove = DateTime.fromISO(
-        createGuestDto.oldGuestInfo.dateOfDeparture,
-      );
-      const months = Math.ceil(
-        endToRemove.diff(startToRemove, 'months').months,
-      );
-
-      for (let i = 0; i <= months; i++) {
-        const month = startToRemove.plus({ months: i });
-        existingGuests.data = {
-          ...existingGuests.data,
-          [month.year]: {
-            ...existingGuests.data[month.year],
-            [month.month]: {
-              ...Object.entries(existingGuests.data[month.year][month.month])
-                .filter(([key, value]) => key !== UID)
-                .reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {}),
-            },
-          },
-        };
-        if (
-          Object.keys(existingGuests.data[month.year][month.month]).length === 0
-        ) {
-          delete existingGuests.data[month.year][month.month];
-        }
-      }
-    }
-
-    const startToAdd = DateTime.fromISO(
-      createGuestDto.newGuestInfo.dateOfArrival,
+    const startToAdd = DateTime.fromISO(createGuestDto.dateOfArrival);
+    const endToAdd = DateTime.fromISO(createGuestDto.dateOfDeparture);
+    const months = Math.ceil(
+      endToAdd.diff(startToAdd, ['months', 'days']).months,
     );
-    const endToAdd = DateTime.fromISO(
-      createGuestDto.newGuestInfo.dateOfDeparture,
-    );
-    const months = Math.ceil(endToAdd.diff(startToAdd, 'months').months);
+
+    const guestObject = GuestObject.init({ ...createGuestDto });
 
     for (let i = 0; i <= months; i++) {
       const month = startToAdd.plus({ months: i });
 
-      existingGuests.data = {
-        ...existingGuests.data,
-        [month.year]: {
-          ...existingGuests.data[month.year],
-          [month.month]: {
-            ...existingGuests.data[month.month],
-            [UID]: createGuestDto.newGuestInfo,
-          },
-        },
+      const existingMonth =
+        existingGuests.data[month.year]?.[month.month] ?? [];
+
+      existingGuests.data[month.year] = {
+        ...existingGuests.data[month.year],
+        [month.month]: [...existingMonth, guestObject],
       };
     }
 
-    return await this.guestModel.findOneAndUpdate(
-      { userid, apartmentid },
-      { data: existingGuests.data },
-      { upsert: true, new: true },
-    );
+    return this.guestModel
+      .findOneAndUpdate(
+        { userId, apartmentId },
+        { data: existingGuests.data },
+        {
+          upsert: true,
+          new: true,
+        },
+      )
+      .lean();
   }
 
   findAll() {
     return `This action returns all guests`;
   }
 
-  async findOne(apartmentid: string, userid: string, selectedyear: string) {
+  async findOne(apartmentId: string, userId: string, selectedYear: string) {
     const guests = await this.guestModel
-      .findOne({ apartmentid, userid })
-      .select(`data.${selectedyear}`);
+      .findOne(
+        { apartmentId, userId },
+        {
+          data: {
+            [selectedYear]: 1,
+          },
+          userId: 1,
+          apartmentId: 1,
+        },
+      )
+      .lean();
+
     return guests;
   }
 
-  update(id: number, updateGuestDto: UpdateGuestDto) {
-    return `This action updates a #${id} guest`;
-  }
-
-  async remove(
-    userid: string,
-    apartmentid: string,
-    removeGuestDto: RemoveGuestDto,
+  async update(
+    userId: string,
+    apartmentId: string,
+    updateGuestDto: UpdateGuestDto,
   ) {
-    const existingGuests = (await this.guestModel.findOne({
-      userid,
-      apartmentid,
-    })) || { data: {}, apartmentid, userid };
+    const currentGuestDto = updateGuestDto.oldGuestInfo;
+    const newGuestDto = updateGuestDto.newGuestInfo;
 
-    const UID = removeGuestDto?.id ?? uuidv4();
+    const existingGuests = await this.remove(userId, apartmentId, {
+      guestId: currentGuestDto.id,
+      startDate: currentGuestDto.dateOfArrival,
+      endDate: currentGuestDto.dateOfDeparture,
+    });
 
-    if (removeGuestDto) {
-      const startToRemove = DateTime.fromISO(removeGuestDto.dateOfArrival);
-      const endToRemove = DateTime.fromISO(removeGuestDto.dateOfDeparture);
+    if (existingGuests) {
+      const startToAdd = DateTime.fromISO(newGuestDto.dateOfArrival);
+      const endToAdd = DateTime.fromISO(newGuestDto.dateOfDeparture);
       const months = Math.ceil(
-        endToRemove.diff(startToRemove, 'months').months,
+        endToAdd.diff(startToAdd, ['months', 'days']).months,
       );
 
       for (let i = 0; i <= months; i++) {
-        const month = startToRemove.plus({ months: i });
+        const month = startToAdd.plus({ months: i });
+
+        const existingMonth =
+          existingGuests.data[month.year]?.[month.month] ?? [];
+
         existingGuests.data = {
           ...existingGuests.data,
           [month.year]: {
             ...existingGuests.data[month.year],
-            [month.month]: {
-              ...Object.entries(existingGuests.data[month.year][month.month])
-                .filter(([key, value]) => key !== UID)
-                .reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {}),
-            },
+            [month.month]: [...existingMonth, newGuestDto],
           },
         };
-        if (
-          Object.keys(existingGuests.data[month.year][month.month]).length === 0
-        ) {
+      }
+
+      return await this.guestModel.findOneAndUpdate(
+        { userId, apartmentId },
+        { data: existingGuests.data },
+        { upsert: true, new: true },
+      );
+    }
+  }
+
+  async remove(
+    userId: string,
+    apartmentId: string,
+    removeGuestDto: RemoveGuestDto,
+  ) {
+    const existingGuests = await this.guestModel
+      .findOne({
+        userId,
+        apartmentId,
+      })
+      .lean();
+
+    const guestId = removeGuestDto.guestId;
+
+    if (removeGuestDto) {
+      const startToRemove = DateTime.fromISO(removeGuestDto.startDate);
+      const endToRemove = DateTime.fromISO(removeGuestDto.endDate);
+      const months = Math.ceil(
+        endToRemove.diff(startToRemove, ['months', 'days']).months,
+      );
+
+      for (let i = 0; i <= months; i++) {
+        const month = startToRemove.plus({ months: i });
+
+        const existingMonth =
+          existingGuests.data[month.year]?.[month.month] ?? [];
+
+        existingGuests.data[month.year] = {
+          ...existingGuests.data[month.year],
+          [month.month]: existingMonth.filter(
+            (guest: GuestObject) => guest.id !== guestId,
+          ),
+        };
+
+        if (existingGuests.data[month.year][month.month].length === 0) {
           delete existingGuests.data[month.year][month.month];
+        }
+        if (Object.keys(existingGuests.data[month.year]).length === 0) {
+          delete existingGuests.data[month.year];
         }
       }
     }
 
-    return await this.guestModel.findOneAndUpdate(
-      { userid, apartmentid },
-      { data: existingGuests.data },
-      { upsert: true, new: true },
-    );
+    return await this.guestModel
+      .findOneAndUpdate(
+        { userId, apartmentId },
+        { data: existingGuests.data },
+        { upsert: true, new: true },
+      )
+      .lean();
   }
 }

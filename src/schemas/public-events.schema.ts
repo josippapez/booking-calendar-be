@@ -31,14 +31,14 @@ export class PublicEventObject {
   }
 }
 
-export class PublicEventsByYear {
+export type PublicEventsByYear = {
   [key: string]:
     | {
         [key: string]: PublicEventObject[] | null | undefined;
       }
     | undefined
     | null;
-}
+} | null;
 
 @Schema({
   toJSON: {
@@ -75,30 +75,32 @@ export class PublicEvents {
   apartmentId: string;
 
   static mapObjectToPublicEventObject(
-    events: PublicEvents,
+    events: PublicEvents | null,
     month: string,
   ): PublicEvents {
     const prevMonth = (Number(month) - 1).toString().padStart(2, '0');
     const tempMonth = month.padStart(2, '0');
     const nextMonth = (Number(month) + 1).toString().padStart(2, '0');
 
-    const data = {
-      ...Object.keys(events.data).reduce((acc, year) => {
-        acc[year] = {
-          ...Object.keys(events.data[year]).reduce((acc2, date) => {
-            if (
-              date.startsWith(`${year}-${prevMonth}`) ||
-              date.startsWith(`${year}-${tempMonth}`) ||
-              date.startsWith(`${year}-${nextMonth}`)
-            ) {
-              acc2[date] = events.data[year][date];
-            }
-            return acc2;
+    const data = events
+      ? {
+          ...Object.keys(events.data).reduce((acc, year) => {
+            acc[year] = {
+              ...Object.keys(events.data[year]).reduce((acc2, date) => {
+                if (
+                  date.startsWith(`${year}-${prevMonth}`) ||
+                  date.startsWith(`${year}-${tempMonth}`) ||
+                  date.startsWith(`${year}-${nextMonth}`)
+                ) {
+                  acc2[date] = events.data[year][date];
+                }
+                return acc2;
+              }, {}),
+            };
+            return acc;
           }, {}),
-        };
-        return acc;
-      }, {}),
-    };
+        }
+      : null;
 
     return {
       ...events,

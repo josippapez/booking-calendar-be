@@ -183,22 +183,22 @@ export class EventsService {
     apartmentId: string,
     filter: EventsFiltersDto,
   ) {
-    const events = await this.eventModel
-      .findOne(
-        {
-          userId,
-          apartmentId,
+    const events = await this.eventModel.findOne(
+      {
+        userId,
+        apartmentId,
+      },
+      {
+        userId: 1,
+        apartmentId: 1,
+        data: {
+          [filter.year]: 1,
         },
-        {
-          userId: 1,
-          apartmentId: 1,
-          data: {
-            [filter.year]: 1,
-          },
-        },
-      )
-      .lean();
-
+      },
+      {
+        lean: true,
+      },
+    );
     return Events.mapObjectToEventObject(events, filter.month);
   }
 

@@ -23,4 +23,7 @@ export class UpdateApartmentDto {
 
   @ApiProperty()
   email: string;
+
+  @ApiPropertyOptional()
+  pricePerNight?: number;
 }

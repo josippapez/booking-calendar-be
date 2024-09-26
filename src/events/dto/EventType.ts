@@ -7,5 +7,3 @@ export type Day = {
   lastMonth: boolean;
   weekNumber: number;
 };
-
-export type EventsByYear = { [key: string]: { [key: string]: Event[] } };

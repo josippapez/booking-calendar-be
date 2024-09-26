@@ -1,11 +1,18 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable, forwardRef } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { DateTime } from 'luxon';
 import { Model } from 'mongoose';
+import { Day } from 'src/events/dto/EventType';
+import { EventsFiltersDto } from 'src/events/dto/events-filters.dto';
+import { GuestsService } from 'src/guests/guests.service';
 import { PublicEventsService } from '../publicEvents/publicEvents.service';
-import { Event, EventDocument } from '../schemas/events.schema';
+import {
+  EventObject,
+  Events,
+  EventsByYear,
+  EventsDocument,
+} from '../schemas/events.schema';
 import { CreateEventDto } from './dto/create-event.dto';
-import { Day, EventsByYear } from './dto/EventType';
 import { RemoveEventDto } from './dto/remove-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 
@@ -35,24 +42,50 @@ const eachDayOfRange = (startDate: string, endDate: string) => {
 @Injectable()
 export class EventsService {
   constructor(
-    @InjectModel(Event.name)
-    private eventModel: Model<EventDocument>,
+    @InjectModel(Events.name)
+    private eventModel: Model<EventsDocument>,
+    @Inject(forwardRef(() => PublicEventsService))
     private readonly publicEventService: PublicEventsService,
+    @Inject(forwardRef(() => GuestsService))
+    private readonly guestsService: GuestsService,
   ) {}
 
   async addNew(
     createEventDto: CreateEventDto,
-    userid: string,
-    apartmentid: string,
+    userId: string,
+    apartmentId: string,
   ) {
-    const existingEvents = (await this.eventModel.findOne({
-      userid,
-      apartmentid,
-    })) || { data: {}, apartmentid, userid };
+    const existingEvents = (await this.eventModel
+      .findOne({
+        userId,
+        apartmentId,
+      })
+      .exec()) || { data: {}, apartmentId, userId };
 
     const dates = eachDayOfRange(createEventDto.start, createEventDto.end);
 
-    this.publicEventService.addNew(dates, userid, apartmentid, createEventDto);
+    const guest = await this.guestsService.create(
+      {
+        address: '',
+        city: '',
+        country: '',
+        dateOfArrival: createEventDto.start,
+        dateOfDeparture: createEventDto.end,
+        dateOfBirth: '',
+        name: createEventDto.title,
+        numberOfInvoice: 0,
+        travelIdNumber: '',
+        note: '',
+        PID: '',
+      },
+      userId,
+      apartmentId,
+    );
+
+    const eventObject = EventObject.init({
+      ...createEventDto,
+      guestId: guest.id,
+    });
 
     const newDates = dates.reduce(
       (acc: EventsByYear, date: Day) => ({
@@ -63,7 +96,7 @@ export class EventsService {
             ...((existingEvents?.data[date.year] &&
               existingEvents?.data[date.year][date.date]) ||
               []),
-            { ...createEventDto, weekNumber: date.weekNumber },
+            { ...eventObject, weekNumber: date.weekNumber },
           ],
         },
       }),
@@ -77,64 +110,58 @@ export class EventsService {
       };
     });
 
-    return this.eventModel.findOneAndUpdate(
-      { userid, apartmentid },
-      { data: existingEvents.data },
-      {
-        upsert: true,
-        new: true,
-      },
-    );
+    this.publicEventService.addNew(apartmentId, userId, existingEvents.data);
+
+    return this.eventModel
+      .findOneAndUpdate(
+        { userId, apartmentId },
+        { data: existingEvents.data },
+        {
+          upsert: true,
+          new: true,
+        },
+      )
+      .lean();
   }
 
   async update(
-    apartmentid: string,
+    apartmentId: string,
     updateEventDto: UpdateEventDto,
-    userid: string,
+    userId: string,
   ) {
     const existingEvents = await this.eventModel
       .findOne({
-        userid,
-        apartmentid,
+        userId,
+        apartmentId,
       })
       .exec();
 
-    if (existingEvents && existingEvents.apartmentid && existingEvents.userid) {
-      const datesToEdit = eachDayOfRange(
-        updateEventDto.oldEvent.start,
-        updateEventDto.oldEvent.end,
-      );
-
-      datesToEdit.map((date) => {
-        if (existingEvents.data[date.year][date.date]) {
-          existingEvents.data[date.year] = {
-            ...existingEvents.data[date.year],
-            [date.date]: [
-              ...existingEvents.data[date.year][date.date].filter(
-                (event: { id: string }) =>
-                  event.id !== updateEventDto.updatedEvent.id,
-              ),
-            ],
-          };
-          if (existingEvents.data[date.year][date.date].length === 0) {
-            delete existingEvents.data[date.year][date.date];
-          }
-        } else if (Object.keys(existingEvents.data[date.year]).length === 0) {
-          delete existingEvents.data[date.year];
-        }
-      });
-
+    if (existingEvents) {
       const dates = eachDayOfRange(
         updateEventDto.updatedEvent.start,
         updateEventDto.updatedEvent.end,
       );
 
-      this.publicEventService.update(
-        apartmentid,
-        updateEventDto,
-        userid,
-        datesToEdit,
-        dates,
+      const filteredEvents = Object.keys(existingEvents.data).reduce(
+        (acc: EventsByYear, year: string) => {
+          acc[year] = Object.keys(existingEvents.data[year]).reduce(
+            (acc2: { [key: string]: EventObject[] }, date: string) => {
+              acc2[date] = existingEvents.data[year][date].filter(
+                (event: EventObject) => event.id !== updateEventDto.oldEvent.id,
+              );
+              if (acc2[date].length === 0) {
+                delete acc2[date];
+              }
+              return acc2;
+            },
+            {},
+          );
+          if (Object.keys(acc[year]).length === 0) {
+            delete acc[year];
+          }
+          return acc;
+        },
+        {},
       );
 
       const newDates = dates.reduce(
@@ -143,9 +170,7 @@ export class EventsService {
           [date.year]: {
             ...acc[date.year],
             [date.date]: [
-              ...((existingEvents?.data[date.year] &&
-                existingEvents?.data[date.year][date.date]) ||
-                []),
+              ...(filteredEvents?.[date.year]?.[date.date] || []),
               { ...updateEventDto.updatedEvent, weekNumber: date.weekNumber },
             ],
           },
@@ -154,72 +179,128 @@ export class EventsService {
       );
 
       Object.keys(newDates).map((year) => {
-        existingEvents.data[year] = {
-          ...existingEvents?.data[year],
+        filteredEvents[year] = {
+          ...filteredEvents[year],
           ...newDates[year],
         };
       });
 
-      return this.eventModel.findOneAndUpdate(
-        { userid, apartmentid },
-        { data: existingEvents.data },
-        {
-          upsert: true,
-          new: true,
-        },
+      this.publicEventService.update(apartmentId, userId, filteredEvents);
+      const oldGuestInfo = await this.guestsService.findOne(
+        apartmentId,
+        userId,
+        new Date(updateEventDto.oldEvent.end).getFullYear().toString(),
+        updateEventDto.oldEvent.guestId,
       );
+      this.guestsService.update(userId, apartmentId, {
+        oldGuestInfo: {
+          ...oldGuestInfo,
+        },
+        newGuestInfo: {
+          ...oldGuestInfo,
+          dateOfArrival: updateEventDto.updatedEvent.start,
+          dateOfDeparture: updateEventDto.updatedEvent.end,
+        },
+      });
+
+      return this.eventModel
+        .findOneAndUpdate(
+          { userId, apartmentId },
+          { data: filteredEvents },
+          {
+            upsert: true,
+            new: true,
+          },
+        )
+        .exec();
     }
   }
 
-  findAllForUser(id: number, apartmentid: string) {
-    return this.eventModel.findOne({ userid: id, apartmentid });
+  async findAllForUser(
+    userId: string,
+    apartmentId: string,
+    filter: EventsFiltersDto,
+  ) {
+    let dataFilter = {
+      [filter.year]: 1,
+    };
+
+    if (filter.month === '12') {
+      dataFilter = {
+        [filter.year]: 1,
+        [Number(filter.year) + 1]: 1,
+      };
+    }
+
+    if (filter.month === '1') {
+      dataFilter = {
+        [filter.year]: 1,
+        [Number(filter.year) - 1]: 1,
+      };
+    }
+
+    const events = await this.eventModel.findOne(
+      {
+        userId,
+        apartmentId,
+      },
+      {
+        userId: 1,
+        apartmentId: 1,
+        data: dataFilter,
+      },
+      {
+        lean: true,
+      },
+    );
+    return Events.mapObjectToEventObject(events, filter.month);
   }
 
   async remove(
-    apartmentid: string,
-    userid: string,
-    eventToRemove: RemoveEventDto,
+    apartmentId: string,
+    userId: string,
+    eventToRemove: EventObject,
   ) {
     const existingEvents = await this.eventModel
       .findOne({
-        userid,
-        apartmentid,
+        userId,
+        apartmentId,
       })
       .exec();
 
-    if (existingEvents && existingEvents.apartmentid && existingEvents.userid) {
-      const datesToEdit = eachDayOfRange(
-        eventToRemove.start,
-        eventToRemove.end,
-      );
-      datesToEdit.map((date) => {
-        if (existingEvents.data[date.year][date.date]) {
-          existingEvents.data[date.year] = {
-            ...existingEvents.data[date.year],
-            [date.date]: [
-              ...existingEvents.data[date.year][date.date].filter(
-                (event: { id: string }) => event.id !== eventToRemove.id,
-              ),
-            ],
-          };
-          if (existingEvents.data[date.year][date.date].length === 0) {
-            delete existingEvents.data[date.year][date.date];
+    if (existingEvents) {
+      const filteredEvents = Object.keys(existingEvents.data).reduce(
+        (acc: EventsByYear, year: string) => {
+          acc[year] = Object.keys(existingEvents.data[year]).reduce(
+            (acc2: { [key: string]: EventObject[] }, date: string) => {
+              acc2[date] = existingEvents.data[year][date].filter(
+                (event: EventObject) => event.id !== eventToRemove.id,
+              );
+              if (acc2[date].length === 0) {
+                delete acc2[date];
+              }
+              return acc2;
+            },
+            {},
+          );
+          if (Object.keys(acc[year]).length === 0) {
+            delete acc[year];
           }
-        } else if (Object.keys(existingEvents.data[date.year]).length === 0) {
-          delete existingEvents.data[date.year];
-        }
+          return acc;
+        },
+        {},
+      );
+
+      this.publicEventService.remove(apartmentId, userId, eventToRemove);
+      this.guestsService.remove(userId, apartmentId, {
+        guestId: eventToRemove.guestId,
+        startDate: eventToRemove.start,
+        endDate: eventToRemove.end,
       });
 
-      this.publicEventService.remove(
-        apartmentid,
-        userid,
-        eventToRemove,
-        datesToEdit,
-      );
-
       return await this.eventModel.findOneAndUpdate(
-        { userid, apartmentid },
-        { data: existingEvents.data },
+        { userId, apartmentId },
+        { data: filteredEvents },
         {
           upsert: true,
           new: true,
@@ -228,10 +309,10 @@ export class EventsService {
     }
   }
 
-  async removeApartmentEvents(userid: string, apartmentid: string) {
-    return await this.eventModel.findOneAndRemove({
-      userid,
-      apartmentid,
+  async removeApartmentEvents(userId: string, apartmentId: string) {
+    return await this.eventModel.findOneAndDelete({
+      userId,
+      apartmentId,
     });
   }
 }

@@ -1,12 +1,6 @@
+import { ApiProperty } from '@nestjs/swagger';
+
 export class RemoveEventDto {
-  id?: string;
-  name: string;
-  start: string;
-  end: string;
-  description?: string;
-  color?: string;
-  phone: string;
-  booking?: boolean;
-  price?: string;
-  weekNumber?: number;
+  @ApiProperty()
+  id: string;
 }

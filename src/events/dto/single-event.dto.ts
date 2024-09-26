@@ -1,8 +1,11 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
-export class CreateEventDto {
+export class SingleEventDto {
   @ApiProperty()
-  title: string;
+  id: string;
+
+  @ApiProperty()
+  name: string;
 
   @ApiProperty()
   start: string;

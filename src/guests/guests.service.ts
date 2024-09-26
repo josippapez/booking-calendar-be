@@ -3,9 +3,9 @@ import { InjectModel } from '@nestjs/mongoose';
 import { DateTime } from 'luxon';
 import { Model } from 'mongoose';
 import { CreateGuestDto } from 'src/guests/dto/create-gudest.dto';
+import { UpdateGuestDto } from 'src/guests/dto/update-guest.dto';
 import { GuestDocument, GuestObject, Guests } from '../schemas/guests.schema';
 import { RemoveGuestDto } from './dto/remove-guest.dto';
-import { UpdateGuestDto } from 'src/guests/dto/update-guest.dto';
 
 @Injectable()
 export class GuestsService {
@@ -28,9 +28,7 @@ export class GuestsService {
 
     const startToAdd = DateTime.fromISO(createGuestDto.dateOfArrival);
     const endToAdd = DateTime.fromISO(createGuestDto.dateOfDeparture);
-    const months = Math.ceil(
-      endToAdd.diff(startToAdd, ['months', 'days']).months,
-    );
+    const months = Math.ceil(endToAdd.diff(startToAdd, ['month']).months);
 
     const guestObject = GuestObject.init({ ...createGuestDto });
 
@@ -46,7 +44,7 @@ export class GuestsService {
       };
     }
 
-    return this.guestModel
+    await this.guestModel
       .findOneAndUpdate(
         { userId, apartmentId },
         { data: existingGuests.data },
@@ -56,27 +54,55 @@ export class GuestsService {
         },
       )
       .lean();
+
+    return guestObject;
   }
 
-  findAll() {
-    return `This action returns all guests`;
-  }
+  async findAll(apartmentId: string, userId: string, selectedYear: string) {
+    const query: any = { apartmentId, userId };
+    const projection: any = {
+      userId: 1,
+      apartmentId: 1,
+    };
+    projection[`data.${selectedYear}`] = 1;
 
-  async findOne(apartmentId: string, userId: string, selectedYear: string) {
-    const guests = await this.guestModel
-      .findOne(
-        { apartmentId, userId },
-        {
-          data: {
-            [selectedYear]: 1,
-          },
-          userId: 1,
-          apartmentId: 1,
-        },
-      )
-      .lean();
+    const guests = await this.guestModel.findOne(query, projection).lean();
 
     return guests;
+  }
+
+  async findOne(
+    apartmentId: string,
+    userId: string,
+    selectedYear: string,
+    id?: string,
+  ) {
+    const query: any = { apartmentId, userId };
+
+    const projection: any = {
+      userId: 1,
+      apartmentId: 1,
+    };
+    projection[`data.${selectedYear}`] = 1;
+
+    const guests = await this.guestModel.findOne(query, projection).lean();
+
+    if (guests && id) {
+      const yearData = guests.data[selectedYear];
+      if (yearData) {
+        for (const month of Object.keys(yearData)) {
+          const guestArray = yearData[month];
+          const guest = guestArray.find(
+            (guest: GuestObject) => guest.id === id,
+          );
+          if (guest) {
+            return guest;
+          }
+        }
+      }
+    }
+
+    return null;
   }
 
   async update(
@@ -141,7 +167,7 @@ export class GuestsService {
       const startToRemove = DateTime.fromISO(removeGuestDto.startDate);
       const endToRemove = DateTime.fromISO(removeGuestDto.endDate);
       const months = Math.ceil(
-        endToRemove.diff(startToRemove, ['months', 'days']).months,
+        endToRemove.diff(startToRemove, ['month']).months,
       );
 
       for (let i = 0; i <= months; i++) {

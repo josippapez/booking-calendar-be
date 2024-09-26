@@ -16,6 +16,7 @@ function base64_encode(file: Express.Multer.File) {
 @Injectable()
 export class ApartmentsService {
   constructor(
+    @Inject(forwardRef(() => EventsService))
     private readonly eventsService: EventsService,
     @Inject(forwardRef(() => PublicEventsService))
     private readonly publicEventService: PublicEventsService,

@@ -106,7 +106,7 @@ export class EventsController {
   async removeEvent(
     @Param('apartmentId') apartmentId: string,
     @Req() request: RequestWithUser,
-    @Body() removeEventDto: RemoveEventDto,
+    @Body() removeEventDto: EventObject,
   ) {
     return await this.eventsService.remove(
       apartmentId,

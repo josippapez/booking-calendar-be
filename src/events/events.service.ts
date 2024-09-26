@@ -4,6 +4,7 @@ import { DateTime } from 'luxon';
 import { Model } from 'mongoose';
 import { Day } from 'src/events/dto/EventType';
 import { EventsFiltersDto } from 'src/events/dto/events-filters.dto';
+import { GuestsService } from 'src/guests/guests.service';
 import { PublicEventsService } from '../publicEvents/publicEvents.service';
 import {
   EventObject,
@@ -45,6 +46,8 @@ export class EventsService {
     private eventModel: Model<EventsDocument>,
     @Inject(forwardRef(() => PublicEventsService))
     private readonly publicEventService: PublicEventsService,
+    @Inject(forwardRef(() => GuestsService))
+    private readonly guestsService: GuestsService,
   ) {}
 
   async addNew(
@@ -61,8 +64,27 @@ export class EventsService {
 
     const dates = eachDayOfRange(createEventDto.start, createEventDto.end);
 
+    const guest = await this.guestsService.create(
+      {
+        address: '',
+        city: '',
+        country: '',
+        dateOfArrival: createEventDto.start,
+        dateOfDeparture: createEventDto.end,
+        dateOfBirth: '',
+        name: createEventDto.title,
+        numberOfInvoice: 0,
+        travelIdNumber: '',
+        note: '',
+        PID: '',
+      },
+      userId,
+      apartmentId,
+    );
+
     const eventObject = EventObject.init({
       ...createEventDto,
+      guestId: guest.id,
     });
 
     const newDates = dates.reduce(
@@ -164,6 +186,22 @@ export class EventsService {
       });
 
       this.publicEventService.update(apartmentId, userId, filteredEvents);
+      const oldGuestInfo = await this.guestsService.findOne(
+        apartmentId,
+        userId,
+        new Date(updateEventDto.oldEvent.end).getFullYear().toString(),
+        updateEventDto.oldEvent.guestId,
+      );
+      this.guestsService.update(userId, apartmentId, {
+        oldGuestInfo: {
+          ...oldGuestInfo,
+        },
+        newGuestInfo: {
+          ...oldGuestInfo,
+          dateOfArrival: updateEventDto.updatedEvent.start,
+          dateOfDeparture: updateEventDto.updatedEvent.end,
+        },
+      });
 
       return this.eventModel
         .findOneAndUpdate(
@@ -183,6 +221,24 @@ export class EventsService {
     apartmentId: string,
     filter: EventsFiltersDto,
   ) {
+    let dataFilter = {
+      [filter.year]: 1,
+    };
+
+    if (filter.month === '12') {
+      dataFilter = {
+        [filter.year]: 1,
+        [Number(filter.year) + 1]: 1,
+      };
+    }
+
+    if (filter.month === '1') {
+      dataFilter = {
+        [filter.year]: 1,
+        [Number(filter.year) - 1]: 1,
+      };
+    }
+
     const events = await this.eventModel.findOne(
       {
         userId,
@@ -191,9 +247,7 @@ export class EventsService {
       {
         userId: 1,
         apartmentId: 1,
-        data: {
-          [filter.year]: 1,
-        },
+        data: dataFilter,
       },
       {
         lean: true,
@@ -205,7 +259,7 @@ export class EventsService {
   async remove(
     apartmentId: string,
     userId: string,
-    eventToRemove: RemoveEventDto,
+    eventToRemove: EventObject,
   ) {
     const existingEvents = await this.eventModel
       .findOne({
@@ -238,6 +292,11 @@ export class EventsService {
       );
 
       this.publicEventService.remove(apartmentId, userId, eventToRemove);
+      this.guestsService.remove(userId, apartmentId, {
+        guestId: eventToRemove.guestId,
+        startDate: eventToRemove.start,
+        endDate: eventToRemove.end,
+      });
 
       return await this.eventModel.findOneAndUpdate(
         { userId, apartmentId },

@@ -4,7 +4,6 @@ import { Model } from 'mongoose';
 import { PublicEventsFiltersDto } from 'src/publicEvents/dto/public-events-filters.dto';
 import { Apartment } from 'src/schemas/apartments.schema';
 import { EventObject, EventsByYear } from 'src/schemas/events.schema';
-import { RemoveEventDto } from '../events/dto/remove-event.dto';
 import {
   PublicEventDocument,
   PublicEventObject,
@@ -125,7 +124,7 @@ export class PublicEventsService {
   async remove(
     apartmentId: string,
     userId: string,
-    eventToRemove: RemoveEventDto,
+    eventToRemove: EventObject,
   ) {
     const existingEvents = await this.eventModel
       .findOne({

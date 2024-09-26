@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
-import { Apartment, ApartmentSchema } from 'src/schemas/apartments.schema';
+import { Apartment, ApartmentSchema } from '../schemas/apartments.schema';
 import {
   PublicEvents,
   PublicEventsSchema,

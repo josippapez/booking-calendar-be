@@ -10,5 +10,6 @@ import { GuestsService } from './guests.service';
   ],
   controllers: [GuestsController],
   providers: [GuestsService],
+  exports: [GuestsService],
 })
 export class GuestsModule {}

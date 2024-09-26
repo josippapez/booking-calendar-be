@@ -39,6 +39,11 @@ export class EventObject {
   @ApiPropertyOptional()
   weekNumber?: number;
 
+  @ApiProperty({
+    required: true,
+  })
+  guestId: string;
+
   static init({
     title,
     start,
@@ -49,6 +54,7 @@ export class EventObject {
     booking,
     price,
     weekNumber,
+    guestId,
   }: {
     title: string;
     start: string;
@@ -59,6 +65,7 @@ export class EventObject {
     booking?: boolean;
     price?: string;
     weekNumber?: number;
+    guestId: string;
   }): EventObject {
     const event = new EventObject();
     event.id = new mongo.ObjectId().toJSON();
@@ -71,6 +78,7 @@ export class EventObject {
     event.booking = booking;
     event.price = price;
     event.weekNumber = weekNumber;
+    event.guestId = guestId;
     return event;
   }
 }
@@ -123,9 +131,13 @@ export class Events {
   apartmentId: string;
 
   static mapObjectToEventObject(events: Events, month: string): Events {
-    const prevMonth = (Number(month) - 1).toString().padStart(2, '0');
+    const prevMonth = (Number(month) === 1 ? 12 : Number(month) - 1)
+      .toString()
+      .padStart(2, '0');
     const tempMonth = month.padStart(2, '0');
-    const nextMonth = (Number(month) + 1).toString().padStart(2, '0');
+    const nextMonth = (Number(month) === 12 ? 1 : Number(month) + 1)
+      .toString()
+      .padStart(2, '0');
 
     const data = events
       ? {

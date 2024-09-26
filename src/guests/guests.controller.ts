@@ -12,13 +12,13 @@ import {
 } from '@nestjs/common';
 import { ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CreateGuestDto } from 'src/guests/dto/create-gudest.dto';
+import { UpdateGuestDto } from 'src/guests/dto/update-guest.dto';
 import { ApiErrorResponse } from 'src/schemas/error';
 import { GuestObject, Guests } from 'src/schemas/guests.schema';
 import JwtAuthenticationGuard from '../authentication/jwt-authentication.guard';
 import RequestWithUser from '../authentication/requestWithUser.interface';
 import { RemoveGuestDto } from './dto/remove-guest.dto';
 import { GuestsService } from './guests.service';
-import { UpdateGuestDto } from 'src/guests/dto/update-guest.dto';
 
 @ApiTags('Guests')
 @UseGuards(JwtAuthenticationGuard)
@@ -41,9 +41,9 @@ export class GuestsController {
     description: 'Bad request',
     type: ApiErrorResponse,
   })
-  @Post(':apartmentId')
+  @Post()
   async create(
-    @Param('apartmentId') apartmentId: string,
+    @Query('apartmentId') apartmentId: string,
     @Body() createGuestDto: CreateGuestDto,
     @Req() request: RequestWithUser,
   ) {
@@ -54,9 +54,22 @@ export class GuestsController {
     );
   }
 
+  @ApiResponse({
+    status: 200,
+    description: 'Get guests',
+    type: Guests,
+  })
   @Get()
-  findAll() {
-    return this.guestsService.findAll();
+  async findAll(
+    @Query('apartmentId') id: string,
+    @Query('selectedYear') selectedYear: string,
+    @Req() request: RequestWithUser,
+  ) {
+    return await this.guestsService.findAll(
+      id,
+      request.user['_id'].valueOf(),
+      selectedYear,
+    );
   }
 
   @ApiResponse({
@@ -74,9 +87,9 @@ export class GuestsController {
     description: 'Bad request',
     type: ApiErrorResponse,
   })
-  @Patch(':apartmentId')
+  @Patch()
   async update(
-    @Param('apartmentId') apartmentId: string,
+    @Query('apartmentId') apartmentId: string,
     @Body() updateGuestDto: UpdateGuestDto,
     @Req() request: RequestWithUser,
   ) {
@@ -92,9 +105,10 @@ export class GuestsController {
     description: 'Get guest',
     type: Guests,
   })
-  @Get(':apartmentId')
+  @Get('guest')
   async findOne(
-    @Param('apartmentId') id: string,
+    @Query('guestId') guestId: string,
+    @Query('apartmentId') id: string,
     @Query('selectedYear') selectedYear: string,
     @Req() request: RequestWithUser,
   ) {
@@ -102,6 +116,7 @@ export class GuestsController {
       id,
       request.user['_id'].valueOf(),
       selectedYear,
+      guestId,
     );
   }
 
